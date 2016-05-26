@@ -18,10 +18,9 @@ package com.hazelcast.map.impl.recordstore;
 
 import com.hazelcast.config.InMemoryFormat;
 import com.hazelcast.map.impl.SizeEstimator;
-import com.hazelcast.map.impl.record.AbstractRecord;
-import com.hazelcast.map.impl.record.Record;
-import com.hazelcast.map.impl.record.RecordFactory;
+import com.hazelcast.map.impl.record.*;
 import com.hazelcast.nio.serialization.Data;
+import org.mapdb.DBMaker;
 
 import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,7 +37,16 @@ class StorageImpl<R extends Record> implements Storage<Data, R> {
 
     private final RecordFactory<R> recordFactory;
     // Concurrency level is 1 since at most one thread can write at a time.
-    private final ConcurrentMap<Data, R> records = new ConcurrentHashMap<Data, R>(1000, 0.75f, 1);
+    //private final ConcurrentMap<Data, R> records = new ConcurrentHashMap<Data, R>(1000, 0.75f, 1);
+    private final ConcurrentMap<Data, R> records = DBMaker
+        .newMemoryDirectDB()
+        .transactionDisable()
+        .make()
+        .createHashMap("recods")
+        .keySerializer(new MapDBDataSerializer())
+        .valueSerializer(new MapDBDataRecordSerializer())
+        .counterEnable()
+        .make();
 
     // not final for testing purposes.
     private SizeEstimator sizeEstimator;
